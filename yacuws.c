@@ -7,6 +7,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #define PORT 12345
 
@@ -21,7 +25,7 @@ int main(int argc, char** argv)
                 return -1;
         }
 
-        server_addr.sin_addr = AF_INET;
+        server_addr.sin_family = AF_INET;
         server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
         server_addr.sin_port = htons(PORT);
 
