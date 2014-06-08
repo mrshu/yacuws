@@ -16,9 +16,12 @@
 
 int main(int argc, char** argv)
 {
-        int listen_fd;
+        int listen_fd, request_fd;
 
         static struct sockaddr_in server_addr;
+        static struct sockaddr_in client_addr;
+
+        socklen_t len;
 
         if ((listen_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
                 printf("Error initalizing socket (socket)\n");
@@ -37,6 +40,15 @@ int main(int argc, char** argv)
         if (listen(listen_fd, 5) < 0) {
                 printf("Error initalizing listening (listen)\n");
                 return -1;
+        }
+
+        while (1) {
+                len = sizeof(client_addr);
+                if ((request_fd = accept(listen_fd, (struct sockaddr*)&client_addr, &len)) < 0) {
+                        printf("Error accepting request (accept)\n");
+                        return -1;
+                }
+                printf("Got socket!\n");
         }
 
         return 0;
