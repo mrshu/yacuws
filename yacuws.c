@@ -6,13 +6,23 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <errno.h>
 
 #define PORT 12345
+
+/* Reads the request from `request_fd`, finds the path,
+ * checks its correctness and writes back requested file */
+void handle_request(int request_fd) {
+        printf("Handling request!\n");
+        close(request_fd);
+
+}
 
 int main(int argc, char** argv)
 {
@@ -22,6 +32,8 @@ int main(int argc, char** argv)
         static struct sockaddr_in client_addr;
 
         socklen_t len;
+
+        int pid;
 
         if ((listen_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
                 printf("Error initalizing socket (socket)\n");
@@ -46,9 +58,26 @@ int main(int argc, char** argv)
                 len = sizeof(client_addr);
                 if ((request_fd = accept(listen_fd, (struct sockaddr*)&client_addr, &len)) < 0) {
                         printf("Error accepting request (accept)\n");
+                        perror(strerror(errno));
                         return -1;
                 }
-                printf("Got socket!\n");
+
+                if ((pid = fork()) < 0) {
+                        printf("Problem with forking!");
+                        return -1;
+                }
+
+                if (pid == 0) {
+                        /* in request handler (child), closing
+                         * the listener and handling the request */
+                        close(listen_fd);
+                        handle_request(request_fd);
+
+                        exit(1);
+                } else {
+                        /* in parent, closing the request socket */
+                        close(request_fd);
+                }
         }
 
         return 0;
