@@ -15,6 +15,8 @@
 #include <arpa/inet.h>
 #include <errno.h>
 
+#include <magic.h>
+
 #define PORT 12345
 #define BUFSIZE 8192
 
@@ -38,12 +40,15 @@
 
 const char* NOT_FOUND_NOT_FOUND = "HTTP/1.1 418 I'm a teapot (RFC 2324)\r\n\r\n<h1>Something is seriously wrong</h1><br>Even the file (./htdocs/404.html) with 'Not found' message was not found (and I might be a <a href='http://www.error418.org/'>teapot</a>).";
 
+magic_t magic;
+
 void _log(char *str, int err)
 {
-        printf("%s\n", str);
         if (err) {
                 perror(strerror(errno));
                 exit(-1);
+        } else {
+                printf("=> %s\n", str);
         }
 }
 
@@ -52,9 +57,12 @@ void _log(char *str, int err)
 int respond_with_file(char* response, char* filename, int target_fd)
 {
         char buffer[BUFSIZE];
+        const char* mime;
 
         ssize_t len;
+        long length;
         int file = open(filename, O_RDONLY);
+
         if (file == -1) {
                 log_debug("Error opening the requested file (open)");
 
@@ -70,7 +78,12 @@ int respond_with_file(char* response, char* filename, int target_fd)
                 }
         }
 
-        snprintf(buffer, BUFSIZE - 1, "HTTP/1.1 %s\r\n\r\n", response);
+        mime = magic_file(magic, filename);
+
+        length = lseek(file, 0, SEEK_END);
+        lseek(file, 0, SEEK_SET);
+
+        snprintf(buffer, BUFSIZE - 1, "HTTP/1.1 %s\r\nConnection: close\r\nContent-Type: %s\r\nContent-Length: %ld\r\n\r\n", response, mime, length);
 
         send(target_fd, buffer, strlen(buffer), MSG_NOSIGNAL);
         len = read(file, buffer, BUFSIZE);
@@ -136,6 +149,10 @@ int main(int argc, char** argv)
 
         int pid;
 
+        magic = magic_open(MAGIC_MIME_TYPE);
+        magic_load(magic, NULL);
+        magic_compile(magic, NULL);
+
         if ((listen_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
                 log_error("Error initalizing socket (socket)");
         }
@@ -151,6 +168,8 @@ int main(int argc, char** argv)
         if (listen(listen_fd, 5) < 0) {
                 log_error("Error initalizing listening (listen)");
         }
+
+        log_debug("Web server listening.");
 
         while (1) {
                 len = sizeof(client_addr);
