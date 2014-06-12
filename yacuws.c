@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -17,23 +18,62 @@
 #define PORT 12345
 #define BUFSIZE 8192
 
-#define log_error(x) log(x, 1)
+#define log_error(x) _log(x, 1)
+#define log_debug(x) _log(x, 0)
 
-void log(char *str, int err) {
+const char* NOT_FOUND_NOT_FOUND = "HTTP/1.1 418 I'm a teapot (RFC 2324)\r\n\r\n<h1>Something is seriously wrong</h1><br>Even the file (./htdocs/404.html) with 'Not found' message was not found (and I seem to be a <a href='http://www.error418.org/'>teapot</a>).";
+
+void _log(char *str, int err)
+{
         printf("%s\n", str);
-        if (err)
+        if (err) {
                 perror(strerror(errno));
+                exit(-1);
+        }
+}
 
-        exit(-1);
+int respond_with_file(char* response, char* filename, int target_fd)
+{
+        char buffer[BUFSIZE];
+
+        ssize_t len;
+        int file = open(filename, O_RDONLY);
+        if (file == -1) {
+                log_debug("Error opening the requested file (open)");
+
+                file = open("./htdocs/404.html", O_RDONLY);
+                if (file == -1) {
+                        log_debug("Error opening the ./htdocs/404.html file (open)");
+
+                        snprintf(buffer, BUFSIZE - 1, "%s", NOT_FOUND_NOT_FOUND);
+                        send(target_fd, buffer, strlen(buffer), MSG_NOSIGNAL);
+                        shutdown(target_fd, SHUT_RDWR);
+
+                        return 1;
+                }
+        }
+
+        snprintf(buffer, BUFSIZE - 1, "HTTP/1.1 %s\r\n\r\n", response);
+
+        send(target_fd, buffer, strlen(buffer), MSG_NOSIGNAL);
+        len = read(target_fd, buffer, BUFSIZE);
+
+        while (len > 0) {
+                send(target_fd, buffer, len, MSG_NOSIGNAL);
+                len = read(target_fd, buffer, BUFSIZE);
+        }
+
+        shutdown(target_fd, SHUT_RDWR);
+        return 0;
 }
 
 /* Reads the request from `request_fd`, finds the path,
  * checks its correctness and writes back requested file */
-void handle_request(int request_fd) {
-        printf("Handling request!\n");
-
+void handle_request(int request_fd)
+{
         long ret;
-        char buffer[BUFSIZE + 1]
+        char buffer[BUFSIZE + 1];
+        char filename[BUFSIZE - 4 + 1];
 
         ret = read(request_fd, buffer, BUFSIZE);
 
@@ -48,13 +88,12 @@ void handle_request(int request_fd) {
                 log_error("Error responding to the request (request too big)");
         }
 
-        if (strncmp(buffer, "GET ", 4) != 0 || strncmp(buffer, "get ", 4) != 0) {
+        if (strncmp(buffer, "GET ", 4) != 0 && strncmp(buffer, "get ", 4) != 0) {
                 log_error("Error responding to the request (no GET)");
         }
 
-        if (strstr(&buffer[5], "..")) {
-
-        }
+        sscanf(buffer, "GET /%s", filename);
+        respond_with_file("200 OK", filename, request_fd);
 
         close(request_fd);
 }
