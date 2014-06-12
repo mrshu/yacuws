@@ -18,10 +18,25 @@
 #define PORT 12345
 #define BUFSIZE 8192
 
+#define DEBUG 1
+
+#define STR(x) #x
+#define TOSTR(x) STR(x)
+#define dprint_str(str) if (DEBUG) printf(__FILE__ ":" TOSTR(__LINE__) "> " TOSTR(str) \
+" = '%s'\n", str)
+
+#define dprint_int(str) if (DEBUG) printf(__FILE__ ":" TOSTR(__LINE__) "> " TOSTR(str) \
+" = %d\n", str)
+
+#define dprint_char(str) if(DEBUG) printf(__FILE__ ":" TOSTR(__LINE__) "> " TOSTR(str) \
+" = %c\n", str)
+
+
+
 #define log_error(x) _log(x, 1)
 #define log_debug(x) _log(x, 0)
 
-const char* NOT_FOUND_NOT_FOUND = "HTTP/1.1 418 I'm a teapot (RFC 2324)\r\n\r\n<h1>Something is seriously wrong</h1><br>Even the file (./htdocs/404.html) with 'Not found' message was not found (and I seem to be a <a href='http://www.error418.org/'>teapot</a>).";
+const char* NOT_FOUND_NOT_FOUND = "HTTP/1.1 418 I'm a teapot (RFC 2324)\r\n\r\n<h1>Something is seriously wrong</h1><br>Even the file (./htdocs/404.html) with 'Not found' message was not found (and I might be a <a href='http://www.error418.org/'>teapot</a>).";
 
 void _log(char *str, int err)
 {
@@ -56,12 +71,14 @@ int respond_with_file(char* response, char* filename, int target_fd)
         snprintf(buffer, BUFSIZE - 1, "HTTP/1.1 %s\r\n\r\n", response);
 
         send(target_fd, buffer, strlen(buffer), MSG_NOSIGNAL);
-        len = read(target_fd, buffer, BUFSIZE);
+        len = read(file, buffer, BUFSIZE);
 
         while (len > 0) {
                 send(target_fd, buffer, len, MSG_NOSIGNAL);
-                len = read(target_fd, buffer, BUFSIZE);
+                len = read(file, buffer, BUFSIZE);
         }
+
+        log_debug("Successfully responded with a file");
 
         shutdown(target_fd, SHUT_RDWR);
         return 0;
@@ -93,6 +110,8 @@ void handle_request(int request_fd)
         }
 
         sscanf(buffer, "GET /%s", filename);
+        dprint_str(filename);
+
         respond_with_file("200 OK", filename, request_fd);
 
         close(request_fd);
