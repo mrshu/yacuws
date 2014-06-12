@@ -47,6 +47,8 @@ void _log(char *str, int err)
         }
 }
 
+/* Responds to a request with a given HTTP response code and file.
+ * Note: also shutdowns and closes the socket file descriptor */
 int respond_with_file(char* response, char* filename, int target_fd)
 {
         char buffer[BUFSIZE];
