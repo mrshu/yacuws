@@ -81,6 +81,7 @@ int respond_with_file(char* response, char* filename, int target_fd)
         log_debug("Successfully responded with a file");
 
         shutdown(target_fd, SHUT_RDWR);
+        close(target_fd);
         return 0;
 }
 
@@ -106,15 +107,20 @@ void handle_request(int request_fd)
         }
 
         if (strncmp(buffer, "GET ", 4) != 0 && strncmp(buffer, "get ", 4) != 0) {
+                respond_with_file("501 Not Implemented", "./htdocs/501.html", request_fd);
                 log_error("Error responding to the request (no GET)");
         }
 
         sscanf(buffer, "GET /%s", filename);
         dprint_str(filename);
 
+        if (strstr(filename, "..")) {
+                respond_with_file("400 Bad Request", "./htdocs/400.html", request_fd);
+                log_error("Error responding to the request (.. present)");
+        }
+
         respond_with_file("200 OK", filename, request_fd);
 
-        close(request_fd);
 }
 
 int main(int argc, char** argv)
