@@ -26,8 +26,17 @@ your decision to view this file. In the name of future generations, thank you.
 
 *Build*
 
-Pretty straightforward, just run
+Building process is retty straightforward, just run
 
     $ make yacuws
 
+*Tests*
+
+As any serious application `yacuws` includes a test suite that makes sure it
+implements requested features. After finishing the building process you can run
+it by executing
+
+    $ make test
+
+Please note that `curl` is necessary for tests to function properly.
 

@@ -133,10 +133,15 @@ void handle_request(int request_fd)
                 exit(-1);
         }
 
+
+
         sscanf(buffer, "GET %s", tmp);
 
         if (strlen(tmp) > 0) {
-                snprintf(filename, BUFSIZE, ".%s", tmp);
+                if (tmp[strlen(tmp) -1] == '/')
+                        snprintf(filename, BUFSIZE, ".%s/index.html", tmp);
+                else
+                        snprintf(filename, BUFSIZE, ".%s", tmp);
         } else {
                 log_error("Error responding to the request (apparently no filename)");
         }
