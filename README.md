@@ -3,13 +3,19 @@ yacuws
 
 Yet Another Completely Useless Web Server
 
-Features
---------
+Requested features
+------------------
 
 - respond to `GET` requests (and `GET` requests only)
 - return the contents of a file specified in the path part of the URL
 - ignore paths containing `..`
 - support more concurent connections
+
+Bonus features
+--------------
+
+- mime type detection (along with proper contet-length header) - images work!
+- directory listing
 
 Installation
 ------------
@@ -46,4 +52,8 @@ Once you verified that everything works, you can run `yacuws` by executing
 
 Then you can point your browser to http://127.0.0.1:12345/ and see if that
 works!
+
+I especially recommend http://127.0.0.1:12345/ which contains some images you
+should be view in your web browser (given it has graphics viewing
+capabilities).
 
