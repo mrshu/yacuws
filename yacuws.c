@@ -19,10 +19,10 @@
 
 #include <magic.h>
 
-#define PORT 12345
+int PORT;
 #define BUFSIZE 8192
 
-#define DEBUG 1
+#define DEBUG 0
 
 #define STR(x) #x
 #define TOSTR(x) STR(x)
@@ -229,9 +229,24 @@ int main(int argc, char** argv)
         static struct sockaddr_in client_addr;
 
         socklen_t len;
-
         int pid;
+        int i;
 
+        PORT = 12345;
+
+        for (i = 1; i < argc; i++) {
+                if((!strcmp(argv[i], "-p")) && (i+1<argc)) {
+                        PORT = atoi(argv[++i]);
+                } else if ((!strcmp(argv[i], "-d")) && (i+1<argc)) {
+                        if (chdir(argv[++i]) != 0) {
+                                log_error("Error changing current working directory");
+                        }
+                } else {
+                        printf("usage: yacuws [-p port] [-d directory]");
+                        exit(0);
+
+                }
+        }
 
         if ((listen_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
                 log_error("Error initalizing socket (socket)");
