@@ -40,15 +40,16 @@
 
 const char* NOT_FOUND_NOT_FOUND = "HTTP/1.1 418 I'm a teapot (RFC 2324)\r\n\r\n<h1>Something is seriously wrong</h1><br>Even the file (./htdocs/404.html) with 'Not found' message was not found (and I might be a <a href='http://www.error418.org/'>teapot</a>).";
 
-magic_t magic;
+magic_t magic_cookie;
 
 void _log(char *str, int err)
 {
         if (err) {
+                printf("yacuws: %s\n", str);
                 perror(strerror(errno));
                 exit(-1);
         } else {
-                printf("=> %s\n", str);
+                printf("=> yacuws: %s\n", str);
         }
 }
 
@@ -78,7 +79,8 @@ int respond_with_file(char* response, char* filename, int target_fd)
                 }
         }
 
-        mime = magic_file(magic, filename);
+
+        mime = magic_file(magic_cookie, filename);
 
         length = lseek(file, 0, SEEK_END);
         lseek(file, 0, SEEK_SET);
@@ -107,6 +109,10 @@ void handle_request(int request_fd)
         long ret;
         char buffer[BUFSIZE + 1];
         char filename[BUFSIZE - 4 + 1];
+        char tmp[BUFSIZE - 4 + 1];
+
+        magic_cookie = magic_open(MAGIC_MIME_TYPE);
+        magic_load(magic_cookie, NULL);
 
         ret = read(request_fd, buffer, BUFSIZE);
 
@@ -126,8 +132,13 @@ void handle_request(int request_fd)
                 log_error("Error responding to the request (no GET)");
         }
 
-        sscanf(buffer, "GET /%s", filename);
-        dprint_str(filename);
+        sscanf(buffer, "GET %s", tmp);
+
+        if (strlen(tmp) > 0) {
+                snprintf(filename, BUFSIZE, ".%s", tmp);
+        } else {
+                log_error("Error responding to the request (apparently no filename)");
+        }
 
         if (strstr(filename, "..")) {
                 respond_with_file("400 Bad Request", "./htdocs/400.html", request_fd);
@@ -149,9 +160,6 @@ int main(int argc, char** argv)
 
         int pid;
 
-        magic = magic_open(MAGIC_MIME_TYPE);
-        magic_load(magic, NULL);
-        magic_compile(magic, NULL);
 
         if ((listen_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
                 log_error("Error initalizing socket (socket)");

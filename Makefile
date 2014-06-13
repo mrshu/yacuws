@@ -1,6 +1,6 @@
 
-CC := gcc -g -Wall -pedantic -lmagic
+CC := gcc -g -Wall -pedantic
 
 yacuws: yacuws.c
-	$(CC) yacuws.c -o yacuws
+	$(CC) yacuws.c -o yacuws -lmagic
 
