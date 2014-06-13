@@ -53,7 +53,7 @@ Once you verified that everything works, you can run `yacuws` by executing
 Then you can point your browser to http://127.0.0.1:12345/ and see if that
 works!
 
-I especially recommend http://127.0.0.1:12345/ which contains some images you
+I especially recommend http://127.0.0.1:12345/data which contains some images you
 should be view in your web browser (given it has graphics viewing
 capabilities).
 
