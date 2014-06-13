@@ -54,5 +54,17 @@ else
         exit 1
 fi
 
+echo -n "-> Testing the directory listing: "
+curl -v 'http://127.0.0.1:12345/' 2>/dev/null | grep "Dir listing"> /dev/null;
+if [[ $? -eq 0 ]]; then
+        echo "OK"
+else
+        echo "FAIL"
+        cleanup
+        exit 1
+fi
+
+
+
 cleanup
 exit 0

@@ -30,7 +30,7 @@ Building process is retty straightforward, just run
 
     $ make yacuws
 
-*Tests*
+*Testing*
 
 As any serious application `yacuws` includes a test suite that makes sure it
 implements requested features. After finishing the building process you can run
@@ -39,4 +39,11 @@ it by executing
     $ make test
 
 Please note that `curl` is necessary for tests to function properly.
+
+Once you verified that everything works, you can run `yacuws` by executing
+
+    $ ./yacuws
+
+Then you can point your browser to http://127.0.0.1:12345/ and see if that
+works!
 
