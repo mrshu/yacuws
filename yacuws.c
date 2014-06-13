@@ -129,7 +129,8 @@ void handle_request(int request_fd)
 
         if (strncmp(buffer, "GET ", 4) != 0 && strncmp(buffer, "get ", 4) != 0) {
                 respond_with_file("501 Not Implemented", "./htdocs/501.html", request_fd);
-                log_error("Error responding to the request (no GET)");
+                log_debug("Error responding to the request (no GET)");
+                exit(-1);
         }
 
         sscanf(buffer, "GET %s", tmp);
@@ -142,7 +143,8 @@ void handle_request(int request_fd)
 
         if (strstr(filename, "..")) {
                 respond_with_file("400 Bad Request", "./htdocs/400.html", request_fd);
-                log_error("Error responding to the request (.. present)");
+                log_debug("Error responding to the request (.. present)");
+                exit(-1);
         }
 
         respond_with_file("200 OK", filename, request_fd);
