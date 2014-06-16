@@ -65,7 +65,7 @@ char* build_dir_listing(char* directory)
 
         int len = 0;
 
-        len += sprintf(out, "<html><head><title>Dir listing of %s</title></head><body><h1>Dir listing of %s</h1><ul>", directory, directory);
+        len += snprintf(out, BUFSIZE,  "<html><head><title>Dir listing of %s</title></head><body><h1>Dir listing of %s</h1><ul>", directory, directory);
         dprint_str(out);
 
         if ((dir = opendir (directory)) != NULL) {
@@ -161,6 +161,8 @@ int respond_with_file(char* response, char* filename, int target_fd)
         }
 
         log_debug("Successfully responded with a file");
+
+        close(file);
 
         shutdown(target_fd, SHUT_RDWR);
         close(target_fd);
