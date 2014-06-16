@@ -194,16 +194,14 @@ void handle_request(int request_fd)
                 log_error("Error responding to the request (request too big)");
         }
 
-        if (strncmp(buffer, "GET ", 4) != 0 && strncmp(buffer, "get ", 4) != 0) {
-                respond_with_file("501 Not Implemented", "./htdocs/501.html", request_fd);
-                log_debug("Error responding to the request (no GET)");
-                exit(-1);
-        }
-
         if (strncmp(buffer, "GET ", 4) == 0) {
                 sscanf(buffer, "GET %s", tmp);
         } else if (strncmp(buffer, "get ", 4) == 0) {
                 sscanf(buffer, "get %s", tmp);
+        } else {
+                respond_with_file("501 Not Implemented", "./htdocs/501.html", request_fd);
+                log_debug("Error responding to the request (no GET)");
+                exit(-1);
         }
 
         if (strlen(tmp) > 0) {
