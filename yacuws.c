@@ -200,9 +200,11 @@ void handle_request(int request_fd)
                 exit(-1);
         }
 
-
-
-        sscanf(buffer, "GET %s", tmp);
+        if (strncmp(buffer, "GET ", 4) == 0) {
+                sscanf(buffer, "GET %s", tmp);
+        } else if (strncmp(buffer, "get ", 4) == 0) {
+                sscanf(buffer, "get %s", tmp);
+        }
 
         if (strlen(tmp) > 0) {
                 if (tmp[strlen(tmp) -1] == '/')
