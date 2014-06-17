@@ -55,6 +55,23 @@ void _log(char *str, int err)
         }
 }
 
+
+/* A function that correctly sends given amount of data froma buffer
+ * to a socket */
+int send_buffer(int fd, char* buffer, int len) {
+        int i = 0, r;
+        while (i < len) {
+                r = send(fd, buffer + i, len - i, MSG_NOSIGNAL);
+                if (r == -1) {
+                        return -1;
+                }
+                i += r;
+        }
+
+        return 0;
+
+}
+
 char* build_dir_listing(char* directory)
 {
         char out[10* BUFSIZE];
@@ -105,7 +122,6 @@ int respond_with_file(char* response, char* filename, int target_fd)
 
         ssize_t len;
         long length;
-        int i, r;
 
         int file = open(filename, O_RDONLY);
 
@@ -125,8 +141,14 @@ int respond_with_file(char* response, char* filename, int target_fd)
 
                                 dprint_str(bigger_buffer);
 
-                                send(target_fd, bigger_buffer, strlen(bigger_buffer), MSG_NOSIGNAL);
+                                if (send_buffer(target_fd, bigger_buffer, strlen(bigger_buffer)) == -1) {
+                                        log_error("Error sending dir listing (send)");
+                                }
+
+                                log_debug("Responded with directory listing.");
+
                                 shutdown(target_fd, SHUT_RDWR);
+                                close(target_fd);
 
                                 return 1;
 
@@ -138,8 +160,13 @@ int respond_with_file(char* response, char* filename, int target_fd)
                         log_debug("Error opening the ./htdocs/404.html file (open)");
 
                         snprintf(buffer, BUFSIZE - 1, "%s", NOT_FOUND_NOT_FOUND);
-                        send(target_fd, buffer, strlen(buffer), MSG_NOSIGNAL);
+
+                        if (send_buffer(target_fd, buffer, strlen(buffer)) == -1) {
+                                log_error("Error sending 404 (send)");
+                        }
+
                         shutdown(target_fd, SHUT_RDWR);
+                        close(target_fd);
 
                         return 1;
                 }
@@ -156,15 +183,9 @@ int respond_with_file(char* response, char* filename, int target_fd)
         send(target_fd, buffer, strlen(buffer), MSG_NOSIGNAL);
 
         while ((len = read(file, buffer, BUFSIZE)) > 0) {
-                i = 0;
-                while (i < len) {
-                        r = send(target_fd, buffer + i, len - i, MSG_NOSIGNAL);
-                        if (r == -1) {
-                                log_error("Error sending file (send)");
-                        }
-                        i += r;
+                if (send_buffer(target_fd, buffer, len) == -1) {
+                        log_error("Error sending file (send)");
                 }
-
         }
 
         log_debug("Successfully responded with a file");
