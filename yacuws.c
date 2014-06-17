@@ -171,6 +171,7 @@ int respond_with_file(char* response, char* filename, int target_fd)
                 }
 
                 file = open("./htdocs/404.html", O_RDONLY);
+                filename = "./htdocs/404.html";
                 if (file == -1) {
                         log_debug("Error opening the ./htdocs/404.html file (open)");
 
@@ -262,7 +263,7 @@ void handle_request(int request_fd)
                 log_error("Error responding to the request (apparently no filename)");
         }
 
-        if (strstr(filename, "..")) {
+        if (strstr(filename, "/..")) {
                 respond_with_file("400 Bad Request", "./htdocs/400.html", request_fd);
                 log_debug("Error responding to the request (.. present)");
                 exit(-1);
