@@ -72,6 +72,20 @@ int send_buffer(int fd, char* buffer, int len) {
 
 }
 
+/* A method that correctly closes given socket.*/
+void close_socket(int fd) {
+        char tmp[100];
+        if (shutdown(fd, SHUT_RDWR) == -1) {
+                log_error("Error closing socket (shutdown)");
+        }
+        while(read(fd, tmp, 100) > 0)
+                ;
+
+        if (close(fd)) {
+                log_error("Error closing socket (close)");
+        }
+}
+
 char* build_dir_listing(char* directory)
 {
         char out[10* BUFSIZE];
@@ -111,8 +125,7 @@ char* build_dir_listing(char* directory)
         return out;
 }
 
-/* Responds to a request with a given HTTP response code and file.
- * Note: also shutdowns and closes the socket file descriptor */
+/* Responds to a request with a given HTTP response code and file. */
 int respond_with_file(char* response, char* filename, int target_fd)
 {
         char buffer[BUFSIZE];
@@ -147,8 +160,7 @@ int respond_with_file(char* response, char* filename, int target_fd)
 
                                 log_debug("Responded with directory listing.");
 
-                                shutdown(target_fd, SHUT_RDWR);
-                                close(target_fd);
+                                close_socket(target_fd);
 
                                 return 1;
 
@@ -165,8 +177,7 @@ int respond_with_file(char* response, char* filename, int target_fd)
                                 log_error("Error sending 404 (send)");
                         }
 
-                        shutdown(target_fd, SHUT_RDWR);
-                        close(target_fd);
+                        close_socket(target_fd);
 
                         return 1;
                 }
@@ -180,7 +191,9 @@ int respond_with_file(char* response, char* filename, int target_fd)
 
         snprintf(buffer, BUFSIZE - 1, "HTTP/1.1 %s\r\nConnection: close\r\nContent-Type: %s\r\nContent-Length: %ld\r\n\r\n", response, mime, length);
 
-        send(target_fd, buffer, strlen(buffer), MSG_NOSIGNAL);
+        if (send_buffer(target_fd, buffer, strlen(buffer)) == -1) {
+                log_error("Error sending header (send)");
+        }
 
         while ((len = read(file, buffer, BUFSIZE)) > 0) {
                 if (send_buffer(target_fd, buffer, len) == -1) {
@@ -190,8 +203,7 @@ int respond_with_file(char* response, char* filename, int target_fd)
 
         log_debug("Successfully responded with a file");
 
-        shutdown(target_fd, SHUT_RDWR);
-        close(target_fd);
+        close_socket(target_fd);
 
         close(file);
 
