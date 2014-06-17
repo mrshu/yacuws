@@ -105,6 +105,7 @@ int respond_with_file(char* response, char* filename, int target_fd)
 
         ssize_t len;
         long length;
+        int i, r;
 
         int file = open(filename, O_RDONLY);
 
@@ -155,7 +156,15 @@ int respond_with_file(char* response, char* filename, int target_fd)
         send(target_fd, buffer, strlen(buffer), MSG_NOSIGNAL);
 
         while ((len = read(file, buffer, BUFSIZE)) > 0) {
-                send(target_fd, buffer, len, MSG_NOSIGNAL);
+                i = 0;
+                while (i < len) {
+                        r = send(target_fd, buffer + i, len - i, MSG_NOSIGNAL);
+                        if (r == -1) {
+                                log_error("Error sending file (send)");
+                        }
+                        i += r;
+                }
+
         }
 
         log_debug("Successfully responded with a file");
