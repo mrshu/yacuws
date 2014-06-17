@@ -187,7 +187,12 @@ int respond_with_file(char* response, char* filename, int target_fd)
         mime = magic_file(magic_cookie, filename);
 
         length = lseek(file, 0, SEEK_END);
-        lseek(file, 0, SEEK_SET);
+        if (length == -1) {
+                log_error("Error with determining the file length (lseek)");
+        }
+        if (lseek(file, 0, SEEK_SET) == -1) {
+                log_error("Error with determining the file length (lseek)");
+        }
 
         snprintf(buffer, BUFSIZE - 1, "HTTP/1.1 %s\r\nConnection: close\r\nContent-Type: %s\r\nContent-Length: %ld\r\n\r\n", response, mime, length);
 
