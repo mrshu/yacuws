@@ -19,6 +19,8 @@
 
 #include <magic.h>
 
+#include "utstring.h"
+
 int PORT;
 #define BUFSIZE 8192
 
@@ -58,7 +60,7 @@ void _log(char *str, int err)
 
 /* A function that correctly sends given amount of data froma buffer
  * to a socket */
-int send_buffer(int fd, char* buffer, int len) {
+int send_buffer(int fd, const char* buffer, int len) {
         int i = 0, r;
         while (i < len) {
                 r = send(fd, buffer + i, len - i, MSG_NOSIGNAL);
@@ -86,18 +88,17 @@ void close_socket(int fd) {
         }
 }
 
-char* build_dir_listing(char* directory)
+UT_string* build_dir_listing(char* directory)
 {
-        char out[10* BUFSIZE];
+
+        UT_string *out;
         char path[BUFSIZE];
         DIR *dir;
         struct dirent *ent;
         struct stat statbuf;
 
-        int len = 0;
-
-        len += snprintf(out, BUFSIZE,  "<html><head><title>Dir listing of %s</title></head><body><h1>Dir listing of %s</h1><ul>", directory, directory);
-        dprint_str(out);
+        utstring_new(out);
+        utstring_printf(out, "<html><head><title>Dir listing of %s</title></head><body><h1>Dir listing of %s</h1><ul>", directory, directory);
 
         if ((dir = opendir (directory)) != NULL) {
                 while ((ent = readdir (dir)) != NULL) {
@@ -107,16 +108,13 @@ char* build_dir_listing(char* directory)
                         stat(path, &statbuf);
 
                         if (S_ISDIR(statbuf.st_mode))
-                                len += snprintf (&out[len], BUFSIZE, "<li><a href='/%s%s/'>%s</a></li>\n", directory, ent->d_name, ent->d_name);
+                                utstring_printf(out, "<li><a href='/%s%s/'>%s</a></li>\n", directory, ent->d_name, ent->d_name);
                         else
-                                len += snprintf (&out[len], BUFSIZE, "<li><a href='/%s%s'>%s</a></li>\n", directory, ent->d_name, ent->d_name);
+                                utstring_printf(out, "<li><a href='/%s%s'>%s</a></li>\n", directory, ent->d_name, ent->d_name);
 
-                        if (len > 10*BUFSIZE)
-                                break;
                 }
-                dprint_str(out);
 
-                snprintf (&out[len], BUFSIZE, "</ul></body></html>\n");
+                utstring_printf(out, "</ul></body></html>\n");
                 closedir (dir);
         } else {
                 log_error("Error reading directory (opendir)");
@@ -129,9 +127,8 @@ char* build_dir_listing(char* directory)
 int respond_with_file(char* response, char* filename, int target_fd)
 {
         char buffer[BUFSIZE];
-        char bigger_buffer[11*BUFSIZE];
         const char* mime;
-        const char* out;
+        UT_string* out;
 
         ssize_t len;
         long length;
@@ -148,15 +145,21 @@ int respond_with_file(char* response, char* filename, int target_fd)
                                 filename[strlen(filename) - 10] = '\0';
                                 out = build_dir_listing(filename);
 
-                                dprint_str(out);
+                                dprint_str(utstring_body(out));
 
-                                snprintf(bigger_buffer, 11*BUFSIZE - 1, "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: text/html\r\nContent-Length: %ld\r\n\r\n%s", (long int) strlen(out), out);
+                                snprintf(buffer, BUFSIZE - 1, "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: text/html\r\nContent-Length: %ld\r\n\r\n", (long int) utstring_len(out));
 
-                                dprint_str(bigger_buffer);
+                                dprint_str(buffer);
 
-                                if (send_buffer(target_fd, bigger_buffer, strlen(bigger_buffer)) == -1) {
+                                if (send_buffer(target_fd, buffer, strlen(buffer)) == -1) {
                                         log_error("Error sending dir listing (send)");
                                 }
+
+                                if (send_buffer(target_fd, utstring_body(out), utstring_len(out)) == -1) {
+                                        log_error("Error sending dir listing contents (send)");
+                                }
+
+                                utstring_free(out);
 
                                 log_debug("Responded with directory listing.");
 
