@@ -153,19 +153,18 @@ int respond_with_file(char* response, char* filename, int target_fd)
         snprintf(buffer, BUFSIZE - 1, "HTTP/1.1 %s\r\nConnection: close\r\nContent-Type: %s\r\nContent-Length: %ld\r\n\r\n", response, mime, length);
 
         send(target_fd, buffer, strlen(buffer), MSG_NOSIGNAL);
-        len = read(file, buffer, BUFSIZE);
 
-        while (len > 0) {
+        while ((len = read(file, buffer, BUFSIZE)) > 0) {
                 send(target_fd, buffer, len, MSG_NOSIGNAL);
-                len = read(file, buffer, BUFSIZE);
         }
 
         log_debug("Successfully responded with a file");
 
-        close(file);
-
         shutdown(target_fd, SHUT_RDWR);
         close(target_fd);
+
+        close(file);
+
         return 0;
 }
 
