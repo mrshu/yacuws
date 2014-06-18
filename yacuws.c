@@ -77,7 +77,7 @@ int send_buffer(int fd, const char* buffer, int len) {
 /* A method that correctly closes given socket.*/
 void close_socket(int fd) {
         char tmp[100];
-        if (shutdown(fd, SHUT_RDWR) == -1) {
+        if (shutdown(fd, SHUT_WR) == -1) {
                 log_error("Error closing socket (shutdown)");
         }
         while(read(fd, tmp, 100) > 0)
